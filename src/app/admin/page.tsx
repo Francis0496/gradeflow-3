@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import Shell from '@/components/Shell';
 import { createServerSupabaseClient } from '@/lib/supabase/client';
 import AdminCourses from './AdminCourses';
 
@@ -10,22 +11,19 @@ export default async function AdminPage() {
   const { data: role } = await supabase.from('role_assignments').select('role').eq('user_id', user.id).maybeSingle();
   if (role?.role !== 'admin' && role?.role !== 'institution_admin') {
     return (
-      <div style={{ maxWidth: 640, margin: '2rem auto', padding: '0 1.5rem' }}>
-        <h1>Admin</h1>
-        <p style={{ color: '#b91c1c' }}>Admin role required.</p>
-      </div>
+      <Shell signedIn>
+        <div className="page"><h1>Admin</h1><p className="error">Admin role required.</p></div>
+      </Shell>
     );
   }
 
-  const { data: courses } = await supabase.from('courses').select('id, code, title, credits, is_active').order('code');
+  const { data: courses } = await supabase.from('courses').select('id, code, title, credit_hours, is_active').order('code');
   const { data: programmes } = await supabase.from('programmes').select('id, name').order('name');
-  const { data: links } = await supabase.from('programme_courses').select('programme_id, course_id');
+  const { data: links } = await supabase.from('programme_courses').select('programme_id, course_id, semester_number, is_core');
 
   return (
-    <AdminCourses
-      initialCourses={courses ?? []}
-      programmes={programmes ?? []}
-      initialLinks={links ?? []}
-    />
+    <Shell signedIn>
+      <AdminCourses initialCourses={courses ?? []} programmes={programmes ?? []} initialLinks={links ?? []} />
+    </Shell>
   );
 }
