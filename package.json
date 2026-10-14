@@ -8,6 +8,9 @@
     "start": "next start",
     "test": "node tests/verify-academics.js"
   },
+  "allowScripts": {
+    "core-js": true
+  },
   "dependencies": {
     "next": "16.4.0",
     "react": "19.3.0",
