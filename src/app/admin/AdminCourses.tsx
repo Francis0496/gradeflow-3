@@ -3,16 +3,26 @@ import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
 interface Course { id: string; code: string; title: string; credits: number; is_active?: boolean | null; }
+interface Programme { id: string; name: string; }
+interface Link { programme_id: string; course_id: string; }
 
-export default function AdminCourses({ initialCourses }: { initialCourses: Course[] }) {
+export default function AdminCourses({
+  initialCourses,
+  programmes,
+  initialLinks,
+}: {
+  initialCourses: Course[];
+  programmes: Programme[];
+  initialLinks: Link[];
+}) {
   const supabase = createClient();
   const [courses, setCourses] = useState(initialCourses.map((c) => ({ ...c, is_active: c.is_active !== false })));
+  const [links, setLinks] = useState(initialLinks);
   const [code, setCode] = useState('');
   const [title, setTitle] = useState('');
   const [credits, setCredits] = useState(3);
-  const [editing, setEditing] = useState<string | null>(null);
-  const [editTitle, setEditTitle] = useState('');
-  const [editCredits, setEditCredits] = useState(3);
+  const [programmeId, setProgrammeId] = useState(programmes[0]?.id ?? '');
+  const [courseId, setCourseId] = useState(courses[0]?.id ?? '');
   const [message, setMessage] = useState('');
 
   async function onAdd(e: React.FormEvent) {
@@ -30,59 +40,72 @@ export default function AdminCourses({ initialCourses }: { initialCourses: Cours
     setMessage(`Added ${data?.code}`);
   }
 
-  async function onSaveEdit(id: string) {
+  async function onLink(e: React.FormEvent) {
+    e.preventDefault();
+    if (!programmeId || !courseId) return;
     setMessage('');
-    const { error } = await supabase.from('courses').update({ title: editTitle.trim(), credits: editCredits }).eq('id', id);
+    const { error } = await supabase.from('programme_courses').upsert({ programme_id: programmeId, course_id: courseId });
     if (error) { setMessage(error.message); return; }
-    setCourses((prev) => prev.map((c) => c.id === id ? { ...c, title: editTitle.trim(), credits: editCredits } : c));
-    setEditing(null);
-    setMessage('Course updated');
+    setLinks((prev) => {
+      const exists = prev.some((l) => l.programme_id === programmeId && l.course_id === courseId);
+      return exists ? prev : [...prev, { programme_id: programmeId, course_id: courseId }];
+    });
+    setMessage('Course linked to programme');
   }
 
-  async function onToggle(id: string, next: boolean) {
-    setMessage('');
-    const { error } = await supabase.from('courses').update({ is_active: next }).eq('id', id);
+  async function onUnlink(programme_id: string, course_id: string) {
+    const { error } = await supabase.from('programme_courses').delete().eq('programme_id', programme_id).eq('course_id', course_id);
     if (error) { setMessage(error.message); return; }
-    setCourses((prev) => prev.map((c) => c.id === id ? { ...c, is_active: next } : c));
-    setMessage(next ? 'Course activated' : 'Course deactivated');
+    setLinks((prev) => prev.filter((l) => !(l.programme_id === programme_id && l.course_id === course_id)));
+    setMessage('Unlinked');
   }
 
   return (
-    <div style={{ maxWidth: 720, margin: '2rem auto', padding: '0 1.5rem' }}>
-      <h1>Admin — Courses</h1>
+    <div style={{ maxWidth: 760, margin: '2rem auto', padding: '0 1.5rem' }}>
+      <h1>Admin — Courses & Programmes</h1>
+
+      <h2 style={{ fontSize: 18 }}>Add course</h2>
       <form onSubmit={onAdd} style={{ display: 'grid', gap: 8, marginBottom: 24 }}>
-        <input placeholder="Code (e.g. DAA112)" required value={code} onChange={(e) => setCode(e.target.value)} style={{ padding: 10 }} />
+        <input placeholder="Code" required value={code} onChange={(e) => setCode(e.target.value)} style={{ padding: 10 }} />
         <input placeholder="Title" required value={title} onChange={(e) => setTitle(e.target.value)} style={{ padding: 10 }} />
         <input type="number" step="0.5" min="0.5" value={credits} onChange={(e) => setCredits(+e.target.value)} style={{ padding: 10 }} />
         <button type="submit" style={{ background: '#1d4ed8', color: '#fff', padding: 10, border: 0, borderRadius: 6 }}>Add course</button>
       </form>
+
+      <h2 style={{ fontSize: 18 }}>Link course to programme</h2>
+      <form onSubmit={onLink} style={{ display: 'grid', gap: 8, marginBottom: 24 }}>
+        <select value={programmeId} onChange={(e) => setProgrammeId(e.target.value)} style={{ padding: 10 }}>
+          {programmes.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <select value={courseId} onChange={(e) => setCourseId(e.target.value)} style={{ padding: 10 }}>
+          {courses.map((c) => <option key={c.id} value={c.id}>{c.code} — {c.title}</option>)}
+        </select>
+        <button type="submit" style={{ background: '#1d4ed8', color: '#fff', padding: 10, border: 0, borderRadius: 6 }}>Link</button>
+      </form>
+
       {message && <p>{message}</p>}
-      <p style={{ color: '#52525b' }}>{courses.length} courses</p>
-      <ul style={{ listStyle: 'none', padding: 0 }}>
-        {courses.map((c) => (
-          <li key={c.id} style={{ borderBottom: '1px solid #e4e4e7', padding: '0.6rem 0', opacity: c.is_active ? 1 : 0.5 }}>
-            {editing === c.id ? (
-              <div style={{ display: 'grid', gap: 6 }}>
-                <strong>{c.code}</strong>
-                <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} style={{ padding: 8 }} />
-                <input type="number" step="0.5" value={editCredits} onChange={(e) => setEditCredits(+e.target.value)} style={{ padding: 8 }} />
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button type="button" onClick={() => onSaveEdit(c.id)} style={{ background: '#1d4ed8', color: '#fff', border: 0, padding: '6px 10px', borderRadius: 4 }}>Save</button>
-                  <button type="button" onClick={() => setEditing(null)} style={{ padding: '6px 10px' }}>Cancel</button>
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                <span><strong>{c.code}</strong> — {c.title} ({Number(c.credits).toFixed(1)}) {!c.is_active && <em>(inactive)</em>}</span>
-                <span style={{ display: 'flex', gap: 6 }}>
-                  <button type="button" onClick={() => { setEditing(c.id); setEditTitle(c.title); setEditCredits(Number(c.credits)); }} style={{ padding: '4px 8px' }}>Edit</button>
-                  <button type="button" onClick={() => onToggle(c.id, !c.is_active)} style={{ padding: '4px 8px' }}>{c.is_active ? 'Deactivate' : 'Activate'}</button>
-                </span>
-              </div>
-            )}
-          </li>
-        ))}
-      </ul>
+
+      <h2 style={{ fontSize: 18 }}>Current links</h2>
+      {programmes.map((p) => {
+        const linked = links.filter((l) => l.programme_id === p.id);
+        return (
+          <div key={p.id} style={{ marginBottom: 16 }}>
+            <strong>{p.name}</strong>
+            {linked.length === 0 && <p style={{ color: '#71717a', margin: '4px 0' }}>No courses linked</p>}
+            <ul style={{ listStyle: 'none', padding: 0 }}>
+              {linked.map((l) => {
+                const course = courses.find((c) => c.id === l.course_id);
+                return (
+                  <li key={l.course_id} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f4f4f5', padding: '4px 0' }}>
+                    <span>{course ? `${course.code} — ${course.title}` : l.course_id}</span>
+                    <button type="button" onClick={() => onUnlink(p.id, l.course_id)} style={{ padding: '2px 8px' }}>Unlink</button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        );
+      })}
     </div>
   );
 }
