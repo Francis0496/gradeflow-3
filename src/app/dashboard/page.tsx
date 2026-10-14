@@ -9,7 +9,7 @@ export default async function DashboardPage() {
   if (!user) redirect('/login');
 
   const { data: profile } = await supabase.from('profiles').select('full_name, programme_id, programmes(name)').eq('id', user.id).maybeSingle();
-  const { data: rows } = await supabase.from('course_attempts').select('credits, letter, grade_point, quality_points, created_at').eq('student_id', user.id).order('created_at', { ascending: false });
+  const { data: rows } = await supabase.from('course_attempts').select('credits, letter, grade_point, quality_points, academic_year, semester').eq('student_id', user.id);
 
   const all: AttemptResult[] = (rows ?? []).map((r) => ({
     credits: String(r.credits),
@@ -17,25 +17,24 @@ export default async function DashboardPage() {
     gradePoint: Number(r.grade_point),
     qualityPoints: Number(r.quality_points),
   }));
-  const latest = rows?.[0]?.created_at ? new Date(rows[0].created_at) : null;
+
+  const latest = (rows ?? []).find((r) => r.academic_year && r.semester);
   const semesterRows = latest
-    ? (rows ?? []).filter((r) => {
-        const d = new Date(r.created_at);
-        return d.getFullYear() === latest.getFullYear() && Math.floor(d.getMonth() / 6) === Math.floor(latest.getMonth() / 6);
-      })
+    ? (rows ?? []).filter((r) => r.academic_year === latest.academic_year && r.semester === latest.semester)
     : [];
-  const semester: AttemptResult[] = semesterRows.map((r) => ({
+  const semesterAttempts: AttemptResult[] = semesterRows.map((r) => ({
     credits: String(r.credits),
     letter: r.letter,
     gradePoint: Number(r.grade_point),
     qualityPoints: Number(r.quality_points),
   }));
 
-  const gpa = semester.length ? calculateGPA(semester) : 0;
+  const gpa = semesterAttempts.length ? calculateGPA(semesterAttempts) : 0;
   const cgpa = all.length ? calculateGPA(all) : 0;
   const credits = all.reduce((s, a) => s + parseFloat(a.credits), 0);
   const name = profile?.full_name || user.email || 'Student';
   const programme = (profile as any)?.programmes?.name ?? 'Programme not set';
+  const term = latest ? `${latest.academic_year} S${latest.semester}` : 'No term';
 
   return (
     <div style={{ maxWidth: 800, margin: '2rem auto', padding: '0 1.5rem' }}>
@@ -49,6 +48,7 @@ export default async function DashboardPage() {
           </div>
         ))}
       </div>
+      <p style={{ fontSize: 13, color: '#71717a' }}>Semester GPA uses {term}</p>
       <nav style={{ marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         <Link href="/profile">Profile</Link>
         <Link href="/results">Results</Link>

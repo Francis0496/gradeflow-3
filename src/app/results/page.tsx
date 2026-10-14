@@ -11,6 +11,8 @@ export default function ResultsPage() {
   const [courseId, setCourseId] = useState('');
   const [ca, setCa] = useState(25);
   const [exam, setExam] = useState(70);
+  const [year, setYear] = useState('2025/2026');
+  const [semester, setSemester] = useState(1);
   const [attempts, setAttempts] = useState<AttemptResult[]>([]);
   const [message, setMessage] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
@@ -30,13 +32,11 @@ export default function ResultsPage() {
       if (programmeId) {
         const { data: links } = await supabase.from('programme_courses').select('course_id, courses(id, code, title, credits)').eq('programme_id', programmeId);
         courseRows = (links ?? []).map((l: any) => l.courses).filter(Boolean);
-        if (courseRows.length === 0) {
-          setMessage('No courses linked to your programme yet. Ask an admin to link courses, or set a programme on your profile.');
-        }
+        if (courseRows.length === 0) setMessage('No courses linked to your programme yet.');
       } else {
         const { data } = await supabase.from('courses').select('id, code, title, credits').eq('is_active', true).order('code');
         courseRows = data ?? [];
-        setMessage('No programme selected. Showing all courses. Set one on your profile.');
+        setMessage('No programme selected. Showing all courses.');
       }
 
       courseRows.sort((a, b) => a.code.localeCompare(b.code));
@@ -68,10 +68,12 @@ export default function ResultsPage() {
       letter: result.letter,
       grade_point: result.gradePoint,
       quality_points: result.qualityPoints,
+      academic_year: year,
+      semester,
     });
     if (error) { setMessage(error.message); return; }
     setAttempts((prev) => [...prev, result]);
-    setMessage(`Saved ${course.code}: ${result.letter}`);
+    setMessage(`Saved ${course.code}: ${result.letter} (${year} S${semester})`);
   }
 
   const gpa = calculateGPA(attempts);
@@ -84,6 +86,15 @@ export default function ResultsPage() {
         <select value={courseId} onChange={(e) => setCourseId(e.target.value)} style={{ padding: 10 }}>
           {courses.map((c) => <option key={c.id} value={c.id}>{c.code} — {c.title}</option>)}
         </select>
+        <label>Academic year
+          <input value={year} onChange={(e) => setYear(e.target.value)} placeholder="2025/2026" style={{ display: 'block', width: '100%', padding: 10, marginTop: 4 }} />
+        </label>
+        <label>Semester
+          <select value={semester} onChange={(e) => setSemester(+e.target.value)} style={{ display: 'block', width: '100%', padding: 10, marginTop: 4 }}>
+            <option value={1}>Semester 1</option>
+            <option value={2}>Semester 2</option>
+          </select>
+        </label>
         <label>CA (30%) <input type="number" value={ca} onChange={(e) => setCa(+e.target.value)} /></label>
         <label>Exam (70%) <input type="number" value={exam} onChange={(e) => setExam(+e.target.value)} /></label>
         <button type="submit" disabled={!courseId} style={{ background: '#1d4ed8', color: '#fff', padding: 10, border: 0, borderRadius: 6 }}>Save result</button>
