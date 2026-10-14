@@ -14,12 +14,23 @@ export interface AttemptResult {
   letter: string;
   gradePoint: number;
   qualityPoints: number;
+  rawTotal?: number;
+  roundedTotal?: number;
 }
 
-/** Precedence: letter > totalScore > CA(30%)+Exam(70%). */
+/** Total = CA*0.30 + Exam*0.70. Round half up to nearest integer. Keep raw for audit. */
+export function computeTotal(ca: number, exam: number): { raw: number; rounded: number } {
+  const raw = ca * 0.3 + exam * 0.7;
+  const rounded = Math.round(raw);
+  return { raw, rounded };
+}
+
 export function resolveAttempt(input: AttemptInput): AttemptResult {
   let letter: string;
   let point: number;
+  let rawTotal: number | undefined;
+  let roundedTotal: number | undefined;
+
   if (input.letter) {
     letter = input.letter;
     point = letterToPoint(letter);
@@ -27,16 +38,28 @@ export function resolveAttempt(input: AttemptInput): AttemptResult {
     const g = scoreToGrade(input.totalScore);
     letter = g.letter;
     point = g.point;
+    rawTotal = input.totalScore;
+    roundedTotal = Math.round(input.totalScore);
   } else if (typeof input.ca === 'number' && typeof input.exam === 'number') {
-    const total = input.ca * 0.3 + input.exam * 0.7;
-    const g = scoreToGrade(total);
+    const t = computeTotal(input.ca, input.exam);
+    const g = scoreToGrade(t.rounded);
     letter = g.letter;
     point = g.point;
+    rawTotal = t.raw;
+    roundedTotal = t.rounded;
   } else {
     throw new Error('Provide letter, totalScore, or ca+exam');
   }
+
   const qp = Math.round(point * input.credits * 100) / 100;
-  return { credits: formatCredits(input.credits), letter, gradePoint: point, qualityPoints: qp };
+  return {
+    credits: formatCredits(input.credits),
+    letter,
+    gradePoint: point,
+    qualityPoints: qp,
+    rawTotal,
+    roundedTotal,
+  };
 }
 
 export function calculateGPA(attempts: AttemptResult[]): number {
