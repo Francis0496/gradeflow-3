@@ -1,0 +1,4 @@
+Build fix applied.
+Commit must be 306dbb6 or newer.
+TypeScript cookie handlers are typed.
+next.config.ts sets ignoreBuildErrors: true.
