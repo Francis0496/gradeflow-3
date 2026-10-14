@@ -5,16 +5,18 @@ export default function HomePage() {
       <header style={{ borderBottom: '1px solid #e4e4e7', background: '#fff', padding: '1rem 1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ fontWeight: 700 }}>GradeFlow 3.0</div>
         <nav>
+          <Link href="/courses" style={{ marginRight: '1rem', color: '#3f3f46' }}>Courses</Link>
           <Link href="/login" style={{ marginRight: '1rem', color: '#3f3f46' }}>Sign in</Link>
-          <Link href="/register" style={{ background: '#1d4ed8', color: '#fff', padding: '0.5rem 1rem', borderRadius: 6 }}>Get started</Link>
+          <Link href="/dashboard" style={{ background: '#1d4ed8', color: '#fff', padding: '0.5rem 1rem', borderRadius: 6 }}>Dashboard</Link>
         </nav>
       </header>
       <main style={{ maxWidth: 720, margin: '4rem auto', padding: '0 1.5rem', textAlign: 'center' }}>
         <h1 style={{ fontSize: '2.5rem' }}>Academic performance, clearly.</h1>
         <p style={{ color: '#52525b', fontSize: '1.1rem' }}>GPA, CGPA, transcripts, and planning for IPAM students. Built by Sierra EduTech Solutions Limited.</p>
-        <div style={{ marginTop: '2rem' }}>
-          <Link href="/dashboard" style={{ background: '#1d4ed8', color: '#fff', padding: '0.6rem 1.2rem', borderRadius: 6, marginRight: 8 }}>Open dashboard</Link>
-          <Link href="/login" style={{ border: '1px solid #d4d4d8', padding: '0.6rem 1.2rem', borderRadius: 6 }}>Sign in</Link>
+        <div style={{ marginTop: '2rem', display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <Link href="/results" style={{ background: '#1d4ed8', color: '#fff', padding: '0.6rem 1.2rem', borderRadius: 6 }}>Results</Link>
+          <Link href="/simulator" style={{ border: '1px solid #d4d4d8', padding: '0.6rem 1.2rem', borderRadius: 6 }}>Simulator</Link>
+          <Link href="/transcript" style={{ border: '1px solid #d4d4d8', padding: '0.6rem 1.2rem', borderRadius: 6 }}>Transcript</Link>
         </div>
       </main>
       <section style={{ maxWidth: 900, margin: '3rem auto', padding: '0 1.5rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
