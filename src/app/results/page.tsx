@@ -14,15 +14,35 @@ export default function ResultsPage() {
   const [attempts, setAttempts] = useState<AttemptResult[]>([]);
   const [message, setMessage] = useState('');
   const [userId, setUserId] = useState<string | null>(null);
+  const [programmeName, setProgrammeName] = useState('');
 
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setUserId(user.id);
-      const { data: courseRows } = await supabase.from('courses').select('id, code, title, credits').order('code');
-      setCourses(courseRows ?? []);
-      if (courseRows?.[0]) setCourseId(courseRows[0].id);
+
+      const { data: profile } = await supabase.from('profiles').select('programme_id, programmes(name)').eq('id', user.id).maybeSingle();
+      const programmeId = profile?.programme_id;
+      setProgrammeName((profile as any)?.programmes?.name ?? '');
+
+      let courseRows: Course[] = [];
+      if (programmeId) {
+        const { data: links } = await supabase.from('programme_courses').select('course_id, courses(id, code, title, credits)').eq('programme_id', programmeId);
+        courseRows = (links ?? []).map((l: any) => l.courses).filter(Boolean);
+        if (courseRows.length === 0) {
+          setMessage('No courses linked to your programme yet. Ask an admin to link courses, or set a programme on your profile.');
+        }
+      } else {
+        const { data } = await supabase.from('courses').select('id, code, title, credits').eq('is_active', true).order('code');
+        courseRows = data ?? [];
+        setMessage('No programme selected. Showing all courses. Set one on your profile.');
+      }
+
+      courseRows.sort((a, b) => a.code.localeCompare(b.code));
+      setCourses(courseRows);
+      if (courseRows[0]) setCourseId(courseRows[0].id);
+
       const { data: saved } = await supabase.from('course_attempts').select('credits, letter, grade_point, quality_points').eq('student_id', user.id);
       setAttempts((saved ?? []).map((r) => ({
         credits: String(r.credits),
@@ -59,18 +79,19 @@ export default function ResultsPage() {
   return (
     <div style={{ maxWidth: 640, margin: '2rem auto', padding: '0 1.5rem' }}>
       <h1>Results</h1>
+      {programmeName && <p style={{ color: '#52525b' }}>{programmeName}</p>}
       <form onSubmit={onSave} style={{ display: 'grid', gap: 12 }}>
         <select value={courseId} onChange={(e) => setCourseId(e.target.value)} style={{ padding: 10 }}>
           {courses.map((c) => <option key={c.id} value={c.id}>{c.code} — {c.title}</option>)}
         </select>
         <label>CA (30%) <input type="number" value={ca} onChange={(e) => setCa(+e.target.value)} /></label>
         <label>Exam (70%) <input type="number" value={exam} onChange={(e) => setExam(+e.target.value)} /></label>
-        <button type="submit" style={{ background: '#1d4ed8', color: '#fff', padding: 10, border: 0, borderRadius: 6 }}>Save result</button>
+        <button type="submit" disabled={!courseId} style={{ background: '#1d4ed8', color: '#fff', padding: 10, border: 0, borderRadius: 6 }}>Save result</button>
       </form>
       {message && <p>{message}</p>}
       <div style={{ marginTop: 16, background: '#fff', border: '1px solid #e4e4e7', borderRadius: 8, padding: 16 }}>
         <p>Recorded attempts: {attempts.length}</p>
-        <p>GPA: {gpa.toFixed(2)} — {getClassification(gpa)}</p>
+        <p>GPA: {gpa.toFixed(2)} — {attempts.length ? getClassification(gpa) : '—'}</p>
       </div>
     </div>
   );
