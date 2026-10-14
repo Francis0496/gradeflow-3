@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Shell from '@/components/Shell';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
@@ -26,15 +27,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: '4rem auto', padding: '0 1.5rem' }}>
-      <h1>Sign in</h1>
-      <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12 }}>
-        <input type="email" placeholder="Email" required value={email} onChange={(e) => setEmail(e.target.value)} style={{ padding: 10, border: '1px solid #d4d4d8', borderRadius: 6 }} />
-        <input type="password" placeholder="Password" required value={password} onChange={(e) => setPassword(e.target.value)} style={{ padding: 10, border: '1px solid #d4d4d8', borderRadius: 6 }} />
-        {error && <p style={{ color: '#b91c1c', fontSize: 14, margin: 0 }}>{error}</p>}
-        <button type="submit" disabled={loading} style={{ background: '#1d4ed8', color: '#fff', padding: 10, border: 0, borderRadius: 6 }}>{loading ? 'Signing in…' : 'Sign in'}</button>
-      </form>
-      <p style={{ fontSize: 14 }}><Link href="/register">Create an account</Link></p>
-    </div>
+    <Shell>
+      <div className="page" style={{ maxWidth: 460 }}>
+        <h1>Sign in</h1>
+        <form className="form card" onSubmit={onSubmit}>
+          <input type="email" placeholder="Email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input type="password" placeholder="Password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+          {error && <p className="error">{error}</p>}
+          <button className="btn" type="submit" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
+          <p style={{ margin: 0, fontSize: 14 }}>No account? <Link href="/register">Create one</Link></p>
+        </form>
+      </div>
+    </Shell>
   );
 }

@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Shell from '@/components/Shell';
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client';
 
 export default function RegisterPage() {
@@ -16,18 +17,11 @@ export default function RegisterPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError('');
-    if (!configured) {
-      setError('Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY on Vercel, then redeploy.');
-      return;
-    }
+    if (!configured) { setError('Supabase is not configured on this deployment.'); return; }
     setLoading(true);
     try {
       const supabase = createClient();
-      const { data, error: err } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: fullName } },
-      });
+      const { data, error: err } = await supabase.auth.signUp({ email, password, options: { data: { full_name: fullName } } });
       if (err) { setError(err.message); return; }
       if (data.user) {
         await supabase.from('profiles').upsert({ id: data.user.id, full_name: fullName, email });
@@ -36,31 +30,26 @@ export default function RegisterPage() {
       router.push('/dashboard');
       router.refresh();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Failed to fetch';
-      setError(msg === 'Failed to fetch'
-        ? 'Could not reach Supabase. Check the project URL, anon key, and that the project is active, then redeploy.'
-        : msg);
+      setError(e instanceof Error ? e.message : 'Failed to fetch');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div style={{ maxWidth: 400, margin: '4rem auto', padding: '0 1.5rem' }}>
-      <h1>Create account</h1>
-      {!configured && (
-        <p style={{ color: '#b91c1c', fontSize: 14 }}>
-          Supabase env vars are missing on this deployment.
-        </p>
-      )}
-      <form onSubmit={onSubmit} style={{ display: 'grid', gap: 12 }}>
-        <input type="text" placeholder="Full name" required value={fullName} onChange={(e) => setFullName(e.target.value)} style={{ padding: 10, border: '1px solid #d4d4d8', borderRadius: 6 }} />
-        <input type="email" placeholder="Email" required value={email} onChange={(e) => setEmail(e.target.value)} style={{ padding: 10, border: '1px solid #d4d4d8', borderRadius: 6 }} />
-        <input type="password" placeholder="Password (min 6)" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} style={{ padding: 10, border: '1px solid #d4d4d8', borderRadius: 6 }} />
-        {error && <p style={{ color: '#b91c1c', fontSize: 14, margin: 0 }}>{error}</p>}
-        <button type="submit" disabled={loading} style={{ background: '#1d4ed8', color: '#fff', padding: 10, border: 0, borderRadius: 6 }}>{loading ? 'Creating…' : 'Create account'}</button>
-      </form>
-      <p style={{ fontSize: 14 }}><Link href="/login">Already have an account? Sign in</Link></p>
-    </div>
+    <Shell>
+      <div className="page" style={{ maxWidth: 460 }}>
+        <h1>Create account</h1>
+        {!configured && <p className="error">Supabase env vars are missing on this deployment.</p>}
+        <form className="form card" onSubmit={onSubmit}>
+          <input type="text" placeholder="Full name" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          <input type="email" placeholder="Email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input type="password" placeholder="Password (min 6)" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+          {error && <p className="error">{error}</p>}
+          <button className="btn" type="submit" disabled={loading}>{loading ? 'Creating…' : 'Create account'}</button>
+          <p style={{ margin: 0, fontSize: 14 }}>Already registered? <Link href="/login">Sign in</Link></p>
+        </form>
+      </div>
+    </Shell>
   );
 }
