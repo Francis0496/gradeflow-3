@@ -4,15 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 interface CookieToSet {
   name: string;
   value: string;
-  options?: {
-    path?: string;
-    domain?: string;
-    maxAge?: number;
-    httpOnly?: boolean;
-    secure?: boolean;
-    sameSite?: 'lax' | 'strict' | 'none' | boolean;
-    expires?: Date;
-  };
+  options?: Record<string, unknown>;
 }
 
 export async function middleware(request: NextRequest) {
@@ -21,20 +13,22 @@ export async function middleware(request: NextRequest) {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return response;
 
+  function setAll(cookiesToSet: CookieToSet[]): void {
+    for (const cookie of cookiesToSet) {
+      request.cookies.set(cookie.name, cookie.value);
+    }
+    response = NextResponse.next({ request });
+    for (const cookie of cookiesToSet) {
+      response.cookies.set(cookie.name, cookie.value, cookie.options as never);
+    }
+  }
+
   const supabase = createServerClient(url, key, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(cookiesToSet: CookieToSet[]) {
-        for (const { name, value } of cookiesToSet) {
-          request.cookies.set(name, value);
-        }
-        response = NextResponse.next({ request });
-        for (const { name, value, options } of cookiesToSet) {
-          response.cookies.set(name, value, options);
-        }
-      },
+      setAll,
     },
   });
 
