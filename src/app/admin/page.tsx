@@ -17,6 +17,6 @@ export default async function AdminPage() {
     );
   }
 
-  const { data: courses } = await supabase.from('courses').select('id, code, title, credits').order('code');
+  const { data: courses } = await supabase.from('courses').select('id, code, title, credits, is_active').order('code');
   return <AdminCourses initialCourses={courses ?? []} />;
 }
