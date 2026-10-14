@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Shell from '@/components/Shell';
 import { requiredGPA, getClassification } from '@/lib/academics';
 
 export default function SimulatorPage() {
@@ -9,16 +10,21 @@ export default function SimulatorPage() {
   const [target, setTarget] = useState(3.5);
   const need = requiredGPA(earned, cgpa, remaining, target);
   return (
-    <div style={{ maxWidth: 640, margin: '2rem auto', padding: '0 1.5rem' }}>
-      <h1>Simulator</h1>
-      <p>Earned credits: <input type="number" value={earned} onChange={(e) => setEarned(+e.target.value)} /></p>
-      <p>Current CGPA: <input type="number" step="0.01" value={cgpa} onChange={(e) => setCgpa(+e.target.value)} /></p>
-      <p>Remaining credits: <input type="number" value={remaining} onChange={(e) => setRemaining(+e.target.value)} /></p>
-      <p>Target CGPA: <input type="number" step="0.01" value={target} onChange={(e) => setTarget(+e.target.value)} /></p>
-      <div style={{ marginTop: 16, background: '#fff', border: '1px solid #e4e4e7', borderRadius: 8, padding: 16 }}>
-        <p>Required GPA on remaining credits: <strong>{need.toFixed(2)}</strong></p>
-        <p>Target standing: {getClassification(target)}</p>
+    <Shell signedIn>
+      <div className="page" style={{ maxWidth: 640 }}>
+        <h1>Simulator</h1>
+        <div className="form card">
+          <label>Earned credits <input type="number" value={earned} onChange={(e) => setEarned(+e.target.value)} /></label>
+          <label>Current CGPA <input type="number" step="0.01" value={cgpa} onChange={(e) => setCgpa(+e.target.value)} /></label>
+          <label>Remaining credits <input type="number" value={remaining} onChange={(e) => setRemaining(+e.target.value)} /></label>
+          <label>Target CGPA <input type="number" step="0.01" value={target} onChange={(e) => setTarget(+e.target.value)} /></label>
+        </div>
+        <div className="card stat" style={{ marginTop: 16 }}>
+          <label>Required GPA on remaining credits</label>
+          <strong>{need.toFixed(2)}</strong>
+          <p>Target standing: {getClassification(target)}</p>
+        </div>
       </div>
-    </div>
+    </Shell>
   );
 }

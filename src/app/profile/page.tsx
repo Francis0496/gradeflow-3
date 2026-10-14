@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Shell from '@/components/Shell';
 import { createClient } from '@/lib/supabase/client';
 
 interface Programme { id: string; name: string; }
@@ -39,21 +40,19 @@ export default function ProfilePage() {
   }
 
   return (
-    <div style={{ maxWidth: 480, margin: '2rem auto', padding: '0 1.5rem' }}>
-      <h1>Profile</h1>
-      <form onSubmit={onSave} style={{ display: 'grid', gap: 12 }}>
-        <label>Full name
-          <input value={name} onChange={(e) => setName(e.target.value)} required style={{ display: 'block', width: '100%', padding: 10, marginTop: 4 }} />
-        </label>
-        <label>Programme
-          <select value={programmeId} onChange={(e) => setProgrammeId(e.target.value)} style={{ display: 'block', width: '100%', padding: 10, marginTop: 4 }}>
+    <Shell signedIn>
+      <div className="page" style={{ maxWidth: 520 }}>
+        <h1>Profile</h1>
+        <form className="form card" onSubmit={onSave}>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" required />
+          <select value={programmeId} onChange={(e) => setProgrammeId(e.target.value)}>
             <option value="">Select programme</option>
             {programmes.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
-        </label>
-        <button type="submit" style={{ background: '#1d4ed8', color: '#fff', padding: 10, border: 0, borderRadius: 6 }}>Save</button>
-      </form>
-      {message && <p>{message}</p>}
-    </div>
+          <button className="btn" type="submit">Save</button>
+          {message && <p>{message}</p>}
+        </form>
+      </div>
+    </Shell>
   );
 }
