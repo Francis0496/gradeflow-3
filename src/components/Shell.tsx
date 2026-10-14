@@ -11,9 +11,11 @@ export default function Shell({ children, signedIn = false }: { children: React.
             <>
               <Link href="/dashboard">Dashboard</Link>
               <Link href="/results">Results</Link>
+              <Link href="/planner">Planner</Link>
               <Link href="/transcript">Transcript</Link>
               <Link href="/simulator">Simulator</Link>
               <Link href="/profile">Profile</Link>
+              <Link href="/admin">Admin</Link>
               <form action="/auth/signout" method="post"><button className="ghost" type="submit">Sign out</button></form>
             </>
           ) : (
