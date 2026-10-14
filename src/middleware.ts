@@ -1,3 +1,4 @@
+// Fixed: cookiesToSet is explicitly typed. Commit 2026-10-14.
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 

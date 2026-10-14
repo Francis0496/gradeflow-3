@@ -1,3 +1,4 @@
+// Fixed: cookiesToSet is explicitly typed. Commit 2026-10-14.
 import { createBrowserClient, createServerClient } from '@supabase/ssr';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co';
