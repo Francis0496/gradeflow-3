@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import Shell from '@/components/Shell';
 import { createServerSupabaseClient } from '@/lib/supabase/client';
 import AdminCourses from './AdminCourses';
+import ClaimAdmin from './ClaimAdmin';
 
 const ADMIN_ROLES = ['admin', 'institution_admin', 'platform_admin', 'department_admin', 'registry_officer'];
 
@@ -23,10 +24,8 @@ export default async function AdminPage() {
           <p>Signed in as <strong>{user.email}</strong></p>
           <p>Roles found: {roleList.length ? roleList.join(', ') : 'none'}</p>
           {error && <p className="error">{error.message}</p>}
-          <p>In Supabase SQL Editor, run:</p>
-          <pre style={{ background: '#fff', padding: 12, borderRadius: 8, overflowX: 'auto' }}>{`insert into public.role_assignments (user_id, role)
-select id, 'institution_admin' from auth.users
-where email = '${user.email}';`}</pre>
+          <p>If you are the first user, claim admin access below. Otherwise ask an existing admin.</p>
+          <ClaimAdmin />
         </div>
       </Shell>
     );
