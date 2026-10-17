@@ -16,6 +16,8 @@ import {
   FileSpreadsheet,
 } from 'lucide-react';
 
+import BatchGradeImporter from './BatchGradeImporter';
+
 interface Course {
   id: string;
   code: string;
@@ -62,15 +64,19 @@ export default function AdminCourses({
   initialLinks,
   faculties = [],
   auditLogs = [],
+  defaultTab = 'catalogue',
 }: {
   initialCourses: Course[];
   programmes: Programme[];
   initialLinks: Link[];
   faculties?: Faculty[];
   auditLogs?: AuditLog[];
+  defaultTab?: 'catalogue' | 'grades' | 'import' | 'structure' | 'audit';
 }) {
   const supabase = createClient();
-  const [activeTab, setActiveTab] = useState<'catalogue' | 'import' | 'structure' | 'audit'>('catalogue');
+  const [activeTab, setActiveTab] = useState<'catalogue' | 'grades' | 'import' | 'structure' | 'audit'>(
+    defaultTab
+  );
 
   // Catalogue State
   const [courses, setCourses] = useState(
@@ -257,6 +263,18 @@ export default function AdminCourses({
         >
           <BookOpen className="w-4 h-4" />
           Courses & Programme Links
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('grades')}
+          className={`flex items-center gap-2 py-3 px-4 border-b-2 transition-all whitespace-nowrap ${
+            activeTab === 'grades'
+              ? 'border-blue-600 text-blue-700 bg-blue-50/40'
+              : 'border-transparent text-slate-500 hover:text-slate-800'
+          }`}
+        >
+          <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+          Batch Grade Importer (CSV)
         </button>
         <button
           type="button"
@@ -518,6 +536,23 @@ export default function AdminCourses({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Tab: Batch Grade Importer */}
+      {activeTab === 'grades' && (
+        <BatchGradeImporter
+          knownCourses={courses.map((c) => ({
+            code: c.code,
+            title: c.title,
+            credit_hours: Number(c.credit_hours),
+          }))}
+          onSuccess={() => {
+            setMessage({
+              type: 'success',
+              text: 'Batch grade ingestion successfully processed and verified in governance registry.',
+            });
+          }}
+        />
       )}
 
       {/* Tab 2: Bulk CSV Import */}

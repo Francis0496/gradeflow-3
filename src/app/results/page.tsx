@@ -268,16 +268,27 @@ export default function ResultsPage() {
             </p>
           </div>
 
-          {/* Quick Summary Pill */}
-          <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
-            <div>
-              <p className="text-[11px] text-slate-400 font-semibold uppercase">Cumulative GPA</p>
-              <p className="text-xl font-black text-blue-700">{formatGPA(overallGpa)}</p>
-            </div>
-            <div className="h-8 w-px bg-slate-200" />
-            <div>
-              <p className="text-[11px] text-slate-400 font-semibold uppercase">Credits</p>
-              <p className="text-xl font-black text-slate-900">{formatCredits(totalEarnedCredits)}</p>
+          <div className="flex items-center gap-3">
+            <a
+              href="/admin?tab=grades"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold border border-slate-200 shadow-xs transition-colors"
+              title="Upload entire class broadsheet via CSV"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+              <span>Batch CSV Class Upload</span>
+            </a>
+
+            {/* Quick Summary Pill */}
+            <div className="flex items-center gap-4 bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+              <div>
+                <p className="text-[11px] text-slate-400 font-semibold uppercase">Cumulative GPA</p>
+                <p className="text-xl font-black text-blue-700">{formatGPA(overallGpa)}</p>
+              </div>
+              <div className="h-8 w-px bg-slate-200" />
+              <div>
+                <p className="text-[11px] text-slate-400 font-semibold uppercase">Credits</p>
+                <p className="text-xl font-black text-slate-900">{formatCredits(totalEarnedCredits)}</p>
+              </div>
             </div>
           </div>
         </div>

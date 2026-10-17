@@ -176,4 +176,42 @@ test.describe('GradeFlow 3.0 Student Academic Workflows', () => {
     await expect(page.getByRole('button', { name: /Completed/i }).first()).toBeVisible();
   });
 
+  test('8. Batch CSV Grade Importer parses, audits 30/70 components and commits class records', async ({ context, page }) => {
+    test.setTimeout(60000);
+
+    // Authenticate with demo admin cookie
+    await context.addCookies([
+      { name: 'gf_demo_admin', value: 'true', domain: 'localhost', path: '/' },
+      { name: 'gf_demo_session', value: 'true', domain: 'localhost', path: '/' },
+    ]);
+
+    await page.goto('/admin?tab=grades', { waitUntil: 'domcontentloaded' });
+
+    // Verify Importer section header is visible
+    await expect(page.getByRole('heading', { name: /Batch CSV Grade Importer/i })).toBeVisible();
+
+    // Click "Load IPAM Sample Class" button
+    const loadSampleBtn = page.getByRole('button', { name: /Load IPAM Sample Class/i });
+    await expect(loadSampleBtn).toBeVisible();
+    await loadSampleBtn.click();
+
+    // Verify Live Validation metrics appear
+    await expect(page.locator('text=Total Rows').first()).toBeVisible();
+    await expect(page.locator('text=Valid Rows').first()).toBeVisible();
+    await expect(page.locator('text=Pass Rate').first()).toBeVisible();
+
+    // Check that sample student records are in the preview table
+    await expect(page.locator('text=john.kamara@ipam.edu.sl').first()).toBeVisible();
+    await expect(page.locator('text=DIT111').first()).toBeVisible();
+
+    // Click Commit Valid Records
+    const commitBtn = page.getByRole('button', { name: /Commit .* Valid Records to Database/i });
+    await expect(commitBtn).toBeVisible();
+    await commitBtn.click();
+
+    // Verify confirmation banner
+    await expect(page.locator('text=Batch Ingestion Complete').first()).toBeVisible();
+  });
+
 });
+

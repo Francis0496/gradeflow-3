@@ -74,7 +74,10 @@ const DEFAULT_AUDIT_LOGS = [
   },
 ];
 
-export default async function AdminPage() {
+export default async function AdminPage(props: { searchParams?: Promise<{ tab?: string }> }) {
+  const searchParams = props.searchParams ? await props.searchParams : undefined;
+  const initialTab = (searchParams?.tab as any) || 'catalogue';
+
   const cookieStore = await cookies();
   const isDemoAdmin = cookieStore.get('gf_demo_admin')?.value === 'true';
 
@@ -134,31 +137,20 @@ export default async function AdminPage() {
     );
   }
 
-  // Load database courses and structure (with fallback if tables not yet migrated in Supabase)
-  const { data: courses } = await supabase
-    .from('courses')
-    .select('id, code, title, credit_hours, is_active')
-    .order('code');
-
-  const { data: programmes } = await supabase
-    .from('programmes')
-    .select('id, name')
-    .order('name');
-
-  const { data: links } = await supabase
-    .from('programme_courses')
-    .select('programme_id, course_id, semester_number, is_core');
-
-  const { data: faculties } = await supabase
-    .from('faculties')
-    .select('id, name, is_active, departments(id, name, programmes(id, name))')
-    .order('name');
-
-  const { data: auditLogs } = await supabase
-    .from('audit_logs')
-    .select('id, action, entity_type, entity_id, details, created_at')
-    .order('created_at', { ascending: false })
-    .limit(20);
+  // Load database courses and structure in parallel (with fallback if tables not yet migrated in Supabase)
+  const [
+    { data: courses },
+    { data: programmes },
+    { data: links },
+    { data: faculties },
+    { data: auditLogs },
+  ] = await Promise.all([
+    supabase.from('courses').select('id, code, title, credit_hours, is_active').order('code'),
+    supabase.from('programmes').select('id, name').order('name'),
+    supabase.from('programme_courses').select('programme_id, course_id, semester_number, is_core'),
+    supabase.from('faculties').select('id, name, is_active, departments(id, name, programmes(id, name))').order('name'),
+    supabase.from('audit_logs').select('id, action, entity_type, entity_id, details, created_at').order('created_at', { ascending: false }).limit(20),
+  ]);
 
   const isDatabaseUnseeded = !courses || courses.length === 0;
 
@@ -204,6 +196,7 @@ export default async function AdminPage() {
         initialLinks={links?.length ? links : DEFAULT_LINKS}
         faculties={faculties?.length ? (faculties as any) : DEFAULT_FACULTIES}
         auditLogs={auditLogs?.length ? (auditLogs as any) : DEFAULT_AUDIT_LOGS}
+        defaultTab={['catalogue', 'grades', 'import', 'structure', 'audit'].includes(initialTab) ? initialTab : 'catalogue'}
       />
     </Shell>
   );
