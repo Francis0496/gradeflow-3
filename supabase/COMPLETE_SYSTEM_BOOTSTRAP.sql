@@ -332,6 +332,58 @@ create policy "Admins can view audit logs" on public.audit_logs for select using
 create policy "System can write audit logs" on public.audit_logs for insert with check (true);
 
 -- ==============================================================================
+-- 10A. AUTOMATIC DEDUPLICATION CLEANUP
+-- Cleans duplicate rows from previous partial migrations before creating unique indexes
+-- ==============================================================================
+do $$
+begin
+  -- Deduplicate programme_courses keeping the newest record
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'programme_courses') then
+    delete from public.programme_courses a
+    using public.programme_courses b
+    where a.ctid < b.ctid
+      and a.programme_id = b.programme_id
+      and a.course_id = b.course_id;
+  end if;
+
+  -- Deduplicate role_assignments
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'role_assignments') then
+    delete from public.role_assignments a
+    using public.role_assignments b
+    where a.ctid < b.ctid
+      and a.user_id = b.user_id
+      and a.role = b.role;
+  end if;
+
+  -- Deduplicate grade_bands
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'grade_bands') then
+    delete from public.grade_bands a
+    using public.grade_bands b
+    where a.ctid < b.ctid
+      and a.policy_id = b.policy_id
+      and a.letter_grade = b.letter_grade;
+  end if;
+
+  -- Deduplicate grading_policies
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'grading_policies') then
+    delete from public.grading_policies a
+    using public.grading_policies b
+    where a.ctid < b.ctid
+      and a.institution_id = b.institution_id
+      and a.version = b.version;
+  end if;
+
+  -- Deduplicate campuses
+  if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'campuses') then
+    delete from public.campuses a
+    using public.campuses b
+    where a.ctid < b.ctid
+      and a.institution_id = b.institution_id
+      and a.name = b.name;
+  end if;
+end $$;
+
+-- ==============================================================================
 -- 10B. IDEMPOTENT CONSTRAINTS & UNIQUE INDEXES (Prevents PostgreSQL 42P10 errors)
 -- ==============================================================================
 create unique index if not exists institutions_name_idx on public.institutions (name);

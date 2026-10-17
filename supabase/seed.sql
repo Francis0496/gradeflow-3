@@ -2,6 +2,13 @@
 -- Institution: Institute of Public Administration and Management (IPAM), University of Sierra Leone
 -- Synthetic test data - no real student personal data.
 
+-- Ensure deduplication before creating indexes
+delete from public.programme_courses a
+using public.programme_courses b
+where a.ctid < b.ctid
+  and a.programme_id = b.programme_id
+  and a.course_id = b.course_id;
+
 -- Ensure Unique Indexes exist for all tables
 create unique index if not exists institutions_name_idx on public.institutions (name);
 create unique index if not exists campuses_inst_name_idx on public.campuses (institution_id, name);
