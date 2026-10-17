@@ -215,6 +215,19 @@ alter table public.grading_policies add column if not exists ca_weight numeric(3
 alter table public.grading_policies add column if not exists exam_weight numeric(3,2) default 0.70;
 alter table public.grading_policies add column if not exists is_active boolean default true;
 
+-- Ensure grading_policies version is text (converts legacy integer column)
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns 
+    where table_schema = 'public' and table_name = 'grading_policies' and column_name = 'version' and data_type <> 'text'
+  ) then
+    alter table public.grading_policies alter column version type text using version::text;
+    alter table public.grading_policies alter column version set default '2018.1';
+  end if;
+exception when others then null;
+end $$;
+
 alter table public.grade_bands add column if not exists policy_id uuid references public.grading_policies(id) on delete cascade;
 alter table public.grade_bands add column if not exists min_score numeric(5,2);
 alter table public.grade_bands add column if not exists max_score numeric(5,2);
@@ -245,6 +258,10 @@ begin
   end if;
   if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'courses' and column_name = 'credits') then
     execute 'update public.courses set credit_hours = credits where (credit_hours is null or credit_hours = 0) and credits is not null';
+  end if;
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'audit_logs' and column_name = 'user_id') then
+    alter table public.audit_logs add column if not exists actor_id uuid references auth.users(id) on delete set null;
+    execute 'update public.audit_logs set actor_id = user_id where actor_id is null and user_id is not null';
   end if;
 end $$;
 

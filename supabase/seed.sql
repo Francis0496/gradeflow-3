@@ -18,6 +18,19 @@ create unique index if not exists departments_id_idx on public.departments (id);
 create unique index if not exists departments_fac_name_idx on public.departments (faculty_id, name);
 create unique index if not exists programmes_id_idx on public.programmes (id);
 create unique index if not exists programmes_name_idx on public.programmes (name);
+-- Ensure version column is text
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns 
+    where table_schema = 'public' and table_name = 'grading_policies' and column_name = 'version' and data_type <> 'text'
+  ) then
+    alter table public.grading_policies alter column version type text using version::text;
+    alter table public.grading_policies alter column version set default '2018.1';
+  end if;
+exception when others then null;
+end $$;
+
 create unique index if not exists grading_policies_id_idx on public.grading_policies (id);
 create unique index if not exists grading_policies_inst_ver_idx on public.grading_policies (institution_id, version);
 create unique index if not exists grade_bands_id_idx on public.grade_bands (id);
