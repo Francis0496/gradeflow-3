@@ -136,7 +136,7 @@ export default function AdminCourses({
         semester_number: semester,
         is_core: isCore,
       },
-      { onConflict: 'programme_id,course_id,semester_number' }
+      { onConflict: 'programme_id,course_id' }
     );
     if (error) {
       setMessage({ type: 'error', text: error.message });
@@ -159,7 +159,7 @@ export default function AdminCourses({
         semester_number: semester,
         is_core: isCore,
       },
-      { onConflict: 'programme_id,course_id,semester_number' }
+      { onConflict: 'programme_id,course_id' }
     );
     if (error) {
       setMessage({ type: 'error', text: error.message });
