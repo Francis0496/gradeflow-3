@@ -1,21 +1,25 @@
 'use client';
+import { Download } from 'lucide-react';
 
 interface Row {
   code: string;
   title: string;
   credits: string;
   letter: string;
+  gradePoint: string;
   qp: string;
 }
 
 export default function DownloadButton({
   name,
+  programme,
   cgpa,
   classification,
   credits,
   rows,
 }: {
   name: string;
+  programme: string;
   cgpa: string;
   classification: string;
   credits: string;
@@ -24,37 +28,104 @@ export default function DownloadButton({
   async function onDownload() {
     const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
-    doc.setFontSize(16);
-    doc.text('GradeFlow 3.0 — Unofficial Transcript', 14, 18);
-    doc.setFontSize(11);
-    doc.text('IPAM · University of Sierra Leone', 14, 26);
-    doc.text(`Student: ${name}`, 14, 36);
-    doc.text(`CGPA: ${cgpa}  ·  ${classification}  ·  Credits: ${credits}`, 14, 44);
-    let y = 56;
+
+    // Top Header & Institution
+    doc.setFillColor(29, 78, 216); // Blue 700
+    doc.rect(0, 0, 210, 16, 'F');
+    doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
-    doc.text('Code', 14, y);
-    doc.text('Title', 40, y);
-    doc.text('Cr', 140, y);
-    doc.text('Grade', 155, y);
-    doc.text('QP', 175, y);
-    y += 6;
+    doc.text('UNIVERSITY OF SIERRA LEONE · IPAM CAMPUS', 14, 11);
+
+    // Document Title
+    doc.setTextColor(15, 23, 42); // Slate 900
+    doc.setFontSize(18);
+    doc.text('Unofficial Academic Transcript Preview', 14, 28);
+
+    doc.setFontSize(10);
+    doc.setTextColor(100, 116, 139); // Slate 500
+    doc.text('Sierra EduTech Solutions Limited · GradeFlow 3.0 Academic Engine', 14, 34);
+
+    // Student & Performance Summary Box
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(14, 40, 182, 30, 3, 3, 'FD');
+
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(10);
+    doc.text(`Student Name: ${name}`, 20, 48);
+    doc.text(`Programme: ${programme}`, 20, 56);
+    doc.text(`Cumulative CGPA: ${cgpa}`, 20, 64);
+
+    doc.text(`Completed Credits: ${credits}`, 110, 48);
+    doc.text(`Degree Classification: ${classification}`, 110, 56);
+    doc.text(`Issue Date: ${new Date().toLocaleDateString()}`, 110, 64);
+
+    // Table Header
+    let y = 80;
+    doc.setFillColor(241, 245, 249);
+    doc.rect(14, y, 182, 8, 'F');
+    doc.setFontSize(9);
+    doc.setTextColor(71, 85, 105);
+    doc.text('Course Code', 18, y + 5.5);
+    doc.text('Course Title', 45, y + 5.5);
+    doc.text('Credits', 125, y + 5.5);
+    doc.text('Grade', 145, y + 5.5);
+    doc.text('Point', 162, y + 5.5);
+    doc.text('Quality Pts', 180, y + 5.5);
+
+    // Table Rows
+    y += 12;
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(9);
+
     rows.forEach((r) => {
-      if (y > 270) { doc.addPage(); y = 20; }
-      doc.text(r.code, 14, y);
-      doc.text(r.title.slice(0, 48), 40, y);
-      doc.text(r.credits, 140, y);
-      doc.text(r.letter, 155, y);
-      doc.text(r.qp, 175, y);
-      y += 6;
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.text(r.code, 18, y);
+      doc.text(r.title.slice(0, 40), 45, y);
+      doc.text(r.credits, 128, y);
+      doc.text(r.letter, 148, y);
+      doc.text(r.gradePoint, 164, y);
+      doc.text(r.qp, 185, y);
+
+      // subtle separator line
+      doc.setDrawColor(241, 245, 249);
+      doc.line(14, y + 2, 196, y + 2);
+      y += 7;
     });
+
+    // Disclaimer Footer
+    y += 10;
+    if (y > 270) {
+      doc.addPage();
+      y = 20;
+    }
     doc.setFontSize(8);
-    doc.text('Unofficial preview. Official transcripts are issued by the registry.', 14, y + 8);
-    doc.save('gradeflow-transcript.pdf');
+    doc.setTextColor(148, 163, 184);
+    doc.text(
+      'NOTICE: This document is an unofficial academic performance summary generated via GradeFlow 3.0.',
+      14,
+      y
+    );
+    doc.text(
+      'Official, authenticated transcripts are issued solely by the University of Sierra Leone Registry.',
+      14,
+      y + 5
+    );
+
+    doc.save(`GradeFlow-Transcript-${name.replace(/\s+/g, '_')}.pdf`);
   }
 
   return (
-    <button type="button" onClick={onDownload} style={{ background: '#1d4ed8', color: '#fff', padding: '8px 14px', border: 0, borderRadius: 6, marginTop: 16 }}>
-      Download PDF
+    <button
+      type="button"
+      onClick={onDownload}
+      className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
+    >
+      <Download className="w-4 h-4" />
+      Download PDF Transcript
     </button>
   );
 }

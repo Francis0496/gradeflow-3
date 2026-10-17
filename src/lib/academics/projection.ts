@@ -1,13 +1,27 @@
-/** Credits needed at a given GPA to reach a target CGPA. */
+import Decimal from 'decimal.js';
+
+/**
+ * Required GPA on remaining credits to reach a target CGPA.
+ * neededQP = (targetCGPA * totalCredits) - earnedQP
+ * requiredGPA = neededQP / remainingCredits
+ */
 export function requiredGPA(
-  earnedCredits: number,
-  currentCGPA: number,
-  remainingCredits: number,
-  targetCGPA: number
+  earnedCredits: number | string,
+  currentCGPA: number | string,
+  remainingCredits: number | string,
+  targetCGPA: number | string
 ): number {
-  if (remainingCredits <= 0) return currentCGPA;
-  const earnedQP = earnedCredits * currentCGPA;
-  const totalCredits = earnedCredits + remainingCredits;
-  const neededQP = targetCGPA * totalCredits - earnedQP;
-  return Math.round((neededQP / remainingCredits) * 100) / 100;
+  const remCr = new Decimal(remainingCredits);
+  const curCgpaD = new Decimal(currentCGPA);
+  if (remCr.isZero() || remCr.isNegative()) return curCgpaD.toNumber();
+
+  const earnedCr = new Decimal(earnedCredits);
+  const targetD = new Decimal(targetCGPA);
+
+  const earnedQP = earnedCr.times(curCgpaD);
+  const totalCredits = earnedCr.plus(remCr);
+  const neededQP = targetD.times(totalCredits).minus(earnedQP);
+
+  return neededQP.dividedBy(remCr).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toNumber();
 }
+

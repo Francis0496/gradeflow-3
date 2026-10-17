@@ -34,10 +34,12 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
-  const protectedPaths = ['/dashboard', '/results', '/simulator', '/transcript', '/admin', '/profile', '/planner'];
+  const protectedPaths = ['/dashboard', '/results', '/simulator', '/transcript', '/admin', '/profile', '/planner', '/resources'];
   const isProtected = protectedPaths.some((p) => path === p || path.startsWith(p + '/'));
 
-  if (isProtected && !user) {
+  const isDemo = request.cookies.get('gf_demo_session')?.value === 'true' || request.headers.get('x-demo-session') === 'true';
+
+  if (isProtected && !user && !isDemo) {
     const redirect = request.nextUrl.clone();
     redirect.pathname = '/login';
     redirect.searchParams.set('next', path);
@@ -54,5 +56,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/results/:path*', '/simulator/:path*', '/transcript/:path*', '/admin/:path*', '/profile/:path*', '/planner/:path*', '/login', '/register'],
+  matcher: ['/dashboard/:path*', '/results/:path*', '/simulator/:path*', '/transcript/:path*', '/admin/:path*', '/profile/:path*', '/planner/:path*', '/resources/:path*', '/login', '/register'],
 };

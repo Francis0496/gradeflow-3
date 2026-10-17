@@ -1,24 +1,35 @@
-/** USL October 2018 classification (Section 11.19). */
-export type AwardType = 'honours' | 'general' | 'diploma';
+import Decimal from 'decimal.js';
 
-export function getClassification(cgpa: number, award: AwardType = 'honours'): string {
+export type AwardType = 'honours' | 'general' | 'diploma' | 'certificate';
+
+/**
+ * University of Sierra Leone / IPAM Degree Classification Policy.
+ * Thresholds use two-decimal half-up rounding comparisons.
+ */
+export function getClassification(cgpa: number | string | Decimal, award: AwardType = 'honours'): string {
+  const d = new Decimal(cgpa).toDecimalPlaces(2, Decimal.ROUND_HALF_UP);
+  const val = d.toNumber();
+
   if (award === 'honours') {
-    if (cgpa >= 3.5) return 'First Class';
-    if (cgpa >= 3.2) return 'Second Class (1st Div)';
-    if (cgpa >= 3.0) return 'Second Class (1st Div)';
-    if (cgpa >= 2.6) return 'Second Class (2nd Div)';
-    if (cgpa >= 2.0) return 'Third Class';
-    if (cgpa >= 1.5) return 'Pass';
+    if (val >= 3.50) return 'First Class';
+    if (val >= 3.00) return 'Second Class, First Division';
+    if (val >= 2.60) return 'Second Class, Second Division';
+    if (val >= 2.00) return 'Third Class';
+    if (val >= 1.50) return 'Pass';
     return 'Fail';
   }
+
   if (award === 'general') {
-    if (cgpa >= 3.2) return 'Division One';
-    if (cgpa >= 2.6) return 'Division Two';
-    if (cgpa >= 1.5) return 'Division Three';
+    if (val >= 3.20) return 'Division One';
+    if (val >= 2.60) return 'Division Two';
+    if (val >= 1.50) return 'Division Three';
     return 'Fail';
   }
-  if (cgpa >= 3.2) return 'Distinction';
-  if (cgpa >= 2.6) return 'Credit';
-  if (cgpa >= 1.5) return 'Pass';
+
+  // Diploma or Certificate
+  if (val >= 3.20) return 'Distinction';
+  if (val >= 2.60) return 'Credit';
+  if (val >= 1.50) return 'Pass';
   return 'Fail';
 }
+
