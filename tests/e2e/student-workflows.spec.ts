@@ -151,4 +151,29 @@ test.describe('GradeFlow 3.0 Student Academic Workflows', () => {
     await expect(page.locator('text=9.75').first()).toBeVisible();
   });
 
+  test('7. Curriculum Study Planner renders 8 semesters and dynamically updates completion', async ({ context, page }) => {
+    // Authenticate with demo session
+    await context.addCookies([
+      { name: 'gf_demo_session', value: 'true', domain: 'localhost', path: '/' },
+    ]);
+
+    await page.goto('/planner');
+
+    // Heading and initial progress checks
+    await expect(page.getByRole('heading', { name: /Curriculum Study Planner/i })).toBeVisible();
+    await expect(page.locator('text=Overall Degree Progression')).toBeVisible();
+
+    // Verify 8 semesters of roadmap are rendered
+    await expect(page.locator('text=Semester 1 Curriculum')).toBeVisible();
+    await expect(page.locator('text=Semester 8 Curriculum')).toBeVisible();
+
+    // Find a course marked "Planned" and click to toggle it to "Completed"
+    const plannedBtn = page.getByRole('button', { name: /Planned/i }).first();
+    await expect(plannedBtn).toBeVisible();
+    await plannedBtn.click();
+
+    // It should now be marked "Completed"
+    await expect(page.getByRole('button', { name: /Completed/i }).first()).toBeVisible();
+  });
+
 });
