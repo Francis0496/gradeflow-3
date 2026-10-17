@@ -154,6 +154,76 @@ create table if not exists public.audit_logs (
   created_at timestamptz default now()
 );
 
+-- ==============================================================================
+-- 7B. COLUMN RECONCILIATION FOR PRE-EXISTING TABLES (Prevents ERROR 42703)
+-- ==============================================================================
+alter table public.institutions add column if not exists short_name text;
+alter table public.institutions add column if not exists country text default 'Sierra Leone';
+alter table public.institutions add column if not exists is_active boolean default true;
+
+alter table public.faculties add column if not exists institution_id uuid references public.institutions(id) on delete cascade;
+alter table public.faculties add column if not exists is_active boolean default true;
+
+alter table public.departments add column if not exists faculty_id uuid references public.faculties(id) on delete cascade;
+
+alter table public.programmes add column if not exists department_id uuid references public.departments(id) on delete set null;
+alter table public.programmes add column if not exists duration_years integer default 4;
+alter table public.programmes add column if not exists award_type text default 'honours';
+
+alter table public.courses add column if not exists credit_hours numeric(3,1) default 3.0;
+alter table public.courses add column if not exists credits numeric(3,1) default 3.0;
+alter table public.courses add column if not exists is_active boolean default true;
+
+alter table public.programme_courses add column if not exists semester_number integer default 1;
+alter table public.programme_courses add column if not exists year integer default 1;
+alter table public.programme_courses add column if not exists semester integer default 1;
+alter table public.programme_courses add column if not exists is_core boolean default true;
+alter table public.programme_courses add column if not exists kind text default 'Core';
+
+alter table public.profiles add column if not exists full_name text;
+alter table public.profiles add column if not exists email text;
+alter table public.profiles add column if not exists programme_id uuid references public.programmes(id) on delete set null;
+alter table public.profiles add column if not exists academic_level text default 'Year 1';
+
+alter table public.grading_policies add column if not exists institution_id uuid references public.institutions(id) on delete cascade;
+alter table public.grading_policies add column if not exists version text default '2018.1';
+alter table public.grading_policies add column if not exists ca_weight numeric(3,2) default 0.30;
+alter table public.grading_policies add column if not exists exam_weight numeric(3,2) default 0.70;
+alter table public.grading_policies add column if not exists is_active boolean default true;
+
+alter table public.grade_bands add column if not exists policy_id uuid references public.grading_policies(id) on delete cascade;
+alter table public.grade_bands add column if not exists min_score numeric(5,2);
+alter table public.grade_bands add column if not exists max_score numeric(5,2);
+alter table public.grade_bands add column if not exists letter_grade text;
+alter table public.grade_bands add column if not exists grade_point numeric(3,2);
+
+alter table public.course_attempts add column if not exists credit_hours numeric(3,1) default 3.0;
+alter table public.course_attempts add column if not exists ca_score numeric(5,2);
+alter table public.course_attempts add column if not exists exam_score numeric(5,2);
+alter table public.course_attempts add column if not exists total_score numeric(5,2);
+alter table public.course_attempts add column if not exists raw_total numeric(5,2);
+alter table public.course_attempts add column if not exists rounded_total integer;
+alter table public.course_attempts add column if not exists letter_grade text;
+alter table public.course_attempts add column if not exists grade_point numeric(3,2);
+alter table public.course_attempts add column if not exists quality_points numeric(6,2);
+alter table public.course_attempts add column if not exists academic_year text default '2025/2026';
+alter table public.course_attempts add column if not exists semester integer default 1;
+alter table public.course_attempts add column if not exists is_verified boolean default true;
+
+-- Sync values from legacy columns if they exist
+do $$
+begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'grade_bands' and column_name = 'letter') then
+    execute 'update public.grade_bands set letter_grade = letter where letter_grade is null and letter is not null';
+  end if;
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'course_attempts' and column_name = 'letter') then
+    execute 'update public.course_attempts set letter_grade = letter where letter_grade is null and letter is not null';
+  end if;
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'courses' and column_name = 'credits') then
+    execute 'update public.courses set credit_hours = credits where (credit_hours is null or credit_hours = 0) and credits is not null';
+  end if;
+end $$;
+
 -- 8. RPC: CLAIM FIRST ADMINISTRATOR
 create or replace function public.claim_first_admin()
 returns text
