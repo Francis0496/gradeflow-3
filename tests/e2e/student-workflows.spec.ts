@@ -213,5 +213,42 @@ test.describe('GradeFlow 3.0 Student Academic Workflows', () => {
     await expect(page.locator('text=Batch Ingestion Complete').first()).toBeVisible();
   });
 
+  test('9. Degree Audit & Prerequisite Engine verifies graduation clearance, prerequisites & deficiencies', async ({ context, page }) => {
+    // Authenticate with demo session
+    await context.addCookies([
+      { name: 'gf_demo_session', value: 'true', domain: 'localhost', path: '/' },
+    ]);
+
+    await page.goto('/planner', { waitUntil: 'domcontentloaded' });
+
+    // Verify view toggle buttons are present
+    const auditTabBtn = page.getByRole('button', { name: /Degree Audit & Graduation Clearance/i });
+    await expect(auditTabBtn).toBeVisible();
+    await auditTabBtn.click();
+
+    // Verify Degree Audit executive view rendered
+    await expect(page.locator('text=Projected Honours').first()).toBeVisible();
+    await expect(page.locator('text=Clearance Breakdown').first()).toBeVisible();
+    await expect(page.locator('text=Official IPAM / USL Graduation Clearance Criteria').first()).toBeVisible();
+
+    // Switch to Prerequisite Chains tab inside the audit view
+    const prereqTab = page.getByRole('button', { name: /Prerequisite Chains/i });
+    await expect(prereqTab).toBeVisible();
+    await prereqTab.click();
+
+    // Verify Prerequisite relationships are displayed
+    await expect(page.locator('text=DIT121').first()).toBeVisible();
+    await expect(page.locator('text=DIT112').first()).toBeVisible();
+
+    // Switch to Core Deficiencies tab
+    const deficienciesTab = page.getByRole('button', { name: /Core Deficiencies/i });
+    await expect(deficienciesTab).toBeVisible();
+    await deficienciesTab.click();
+
+    // Verify Core Deficiency table
+    await expect(page.locator('text=Course Code').first()).toBeVisible();
+  });
+
 });
+
 

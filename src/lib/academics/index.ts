@@ -5,3 +5,4 @@ export * from './classification';
 export * from './projection';
 export * from './recommendations';
 export * from './batchGrades';
+export * from './degreeAudit';
