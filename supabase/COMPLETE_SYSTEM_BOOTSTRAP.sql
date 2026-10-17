@@ -169,6 +169,30 @@ alter table public.departments add column if not exists faculty_id uuid referenc
 alter table public.programmes add column if not exists department_id uuid references public.departments(id) on delete set null;
 alter table public.programmes add column if not exists duration_years integer default 4;
 alter table public.programmes add column if not exists award_type text default 'honours';
+alter table public.programmes add column if not exists degree_type text default 'BSc';
+alter table public.programmes add column if not exists total_semesters integer default 8;
+
+-- Handle legacy NOT NULL constraints on programmes
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns 
+    where table_schema = 'public' and table_name = 'programmes' and column_name = 'degree_type'
+  ) then
+    alter table public.programmes alter column degree_type set default 'BSc';
+    alter table public.programmes alter column degree_type drop not null;
+    update public.programmes set degree_type = 'BSc' where degree_type is null;
+  end if;
+
+  if exists (
+    select 1 from information_schema.columns 
+    where table_schema = 'public' and table_name = 'programmes' and column_name = 'total_semesters'
+  ) then
+    alter table public.programmes alter column total_semesters set default 8;
+    alter table public.programmes alter column total_semesters drop not null;
+    update public.programmes set total_semesters = 8 where total_semesters is null;
+  end if;
+end $$;
 
 alter table public.courses add column if not exists credit_hours numeric(3,1) default 3.0;
 alter table public.courses add column if not exists credits numeric(3,1) default 3.0;
@@ -449,8 +473,8 @@ where f.name = 'Faculty of Information Systems & Technology'
 on conflict (faculty_id, name) do nothing;
 
 -- 5. Programmes
-insert into public.programmes (department_id, name, duration_years, award_type)
-select d.id, p.name, 4, 'honours'
+insert into public.programmes (department_id, name, duration_years, award_type, degree_type)
+select d.id, p.name, 4, 'honours', 'BSc'
 from public.departments d
 join (values
   ('Department of Information Technology', 'BSc. Information Technology'),
@@ -460,7 +484,8 @@ join (values
 on conflict (name) do update set
   department_id = excluded.department_id,
   duration_years = excluded.duration_years,
-  award_type = excluded.award_type;
+  award_type = excluded.award_type,
+  degree_type = coalesce(excluded.degree_type, public.programmes.degree_type, 'BSc');
 
 -- 6. Versioned 10-Tier Grading Scale Policy
 insert into public.grading_policies (institution_id, name, version, ca_weight, exam_weight, is_active)

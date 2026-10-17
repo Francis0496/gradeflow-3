@@ -62,8 +62,8 @@ where f.name = 'Faculty of Information Systems & Technology'
 on conflict (faculty_id, name) do nothing;
 
 -- 4. Programmes
-insert into public.programmes (department_id, name, duration_years, award_type)
-select d.id, p.name, 4, 'honours'
+insert into public.programmes (department_id, name, duration_years, award_type, degree_type)
+select d.id, p.name, 4, 'honours', 'BSc'
 from public.departments d
 join (values
   ('Department of Information Technology', 'BSc. Information Technology'),
@@ -73,7 +73,8 @@ join (values
 on conflict (name) do update set
   department_id = excluded.department_id,
   duration_years = excluded.duration_years,
-  award_type = excluded.award_type;
+  award_type = excluded.award_type,
+  degree_type = coalesce(excluded.degree_type, public.programmes.degree_type, 'BSc');
 
 -- 5. Versioned Grading Policy
 insert into public.grading_policies (institution_id, name, version, ca_weight, exam_weight, is_active)
