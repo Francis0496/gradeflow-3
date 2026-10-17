@@ -103,19 +103,25 @@ on conflict (institution_id, version) do update set
 -- Reconcile legacy letter column on grade_bands
 do $$
 begin
+  alter table public.grade_bands drop constraint if exists grade_bands_policy_id_letter_key;
+  alter table public.grade_bands drop constraint if exists grade_bands_policy_id_letter_grade_key;
+
   if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'grade_bands' and column_name = 'letter') then
     alter table public.grade_bands alter column letter drop not null;
-    alter table public.grade_bands alter column letter set default '';
-    execute 'update public.grade_bands set letter_grade = letter where letter_grade is null and letter is not null';
+    alter table public.grade_bands alter column letter drop default;
+    execute 'update public.grade_bands set letter_grade = letter where letter_grade is null and letter is not null and letter <> ''''';
     execute 'update public.grade_bands set letter = letter_grade where (letter is null or letter = '''') and letter_grade is not null';
+    delete from public.grade_bands where letter = '' or letter is null;
   end if;
+exception when others then null;
 end $$;
 
-insert into public.grade_bands (policy_id, min_score, max_score, letter_grade, grade_point)
+insert into public.grade_bands (policy_id, min_score, max_score, letter_grade, letter, grade_point)
 select
   gp.id,
   b.min_score,
   b.max_score,
+  b.letter_grade,
   b.letter_grade,
   b.grade_point
 from public.grading_policies gp
@@ -135,11 +141,5 @@ where gp.version = '2018.1'
 on conflict (policy_id, letter_grade) do update set
   min_score = excluded.min_score,
   max_score = excluded.max_score,
+  letter = excluded.letter,
   grade_point = excluded.grade_point;
-
-do $$
-begin
-  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'grade_bands' and column_name = 'letter') then
-    update public.grade_bands set letter = letter_grade where (letter is null or letter = '') and letter_grade is not null;
-  end if;
-end $$;

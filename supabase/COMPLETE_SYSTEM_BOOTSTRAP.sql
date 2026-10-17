@@ -232,6 +232,7 @@ alter table public.grade_bands add column if not exists policy_id uuid reference
 alter table public.grade_bands add column if not exists min_score numeric(5,2);
 alter table public.grade_bands add column if not exists max_score numeric(5,2);
 alter table public.grade_bands add column if not exists letter_grade text;
+alter table public.grade_bands add column if not exists letter text;
 alter table public.grade_bands add column if not exists grade_point numeric(3,2);
 
 alter table public.course_attempts add column if not exists credit_hours numeric(3,1) default 3.0;
@@ -241,25 +242,30 @@ alter table public.course_attempts add column if not exists total_score numeric(
 alter table public.course_attempts add column if not exists raw_total numeric(5,2);
 alter table public.course_attempts add column if not exists rounded_total integer;
 alter table public.course_attempts add column if not exists letter_grade text;
+alter table public.course_attempts add column if not exists letter text;
 alter table public.course_attempts add column if not exists grade_point numeric(3,2);
 alter table public.course_attempts add column if not exists quality_points numeric(6,2);
 alter table public.course_attempts add column if not exists academic_year text default '2025/2026';
 alter table public.course_attempts add column if not exists semester integer default 1;
 alter table public.course_attempts add column if not exists is_verified boolean default true;
 
--- Sync values from legacy columns if they exist
+-- Sync values from legacy columns if they exist and remove obsolete unique constraints
 do $$
 begin
+  -- Drop obsolete unique constraints that conflict with modern multi-tier schema
+  alter table public.grade_bands drop constraint if exists grade_bands_policy_id_letter_key;
+  alter table public.grade_bands drop constraint if exists grade_bands_policy_id_letter_grade_key;
+
   if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'grade_bands' and column_name = 'letter') then
     alter table public.grade_bands alter column letter drop not null;
-    alter table public.grade_bands alter column letter set default '';
-    execute 'update public.grade_bands set letter_grade = letter where letter_grade is null and letter is not null';
+    alter table public.grade_bands alter column letter drop default;
+    execute 'update public.grade_bands set letter_grade = letter where letter_grade is null and letter is not null and letter <> ''''';
     execute 'update public.grade_bands set letter = letter_grade where (letter is null or letter = '''') and letter_grade is not null';
   end if;
   if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'course_attempts' and column_name = 'letter') then
     alter table public.course_attempts alter column letter drop not null;
-    alter table public.course_attempts alter column letter set default '';
-    execute 'update public.course_attempts set letter_grade = letter where letter_grade is null and letter is not null';
+    alter table public.course_attempts alter column letter drop default;
+    execute 'update public.course_attempts set letter_grade = letter where letter_grade is null and letter is not null and letter <> ''''';
     execute 'update public.course_attempts set letter = letter_grade where (letter is null or letter = '''') and letter_grade is not null';
   end if;
   if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'courses' and column_name = 'credits') then
@@ -270,6 +276,7 @@ begin
     alter table public.audit_logs add column if not exists actor_id uuid references auth.users(id) on delete set null;
     execute 'update public.audit_logs set actor_id = user_id where actor_id is null and user_id is not null';
   end if;
+exception when others then null;
 end $$;
 
 -- 8. RPC: CLAIM FIRST ADMINISTRATOR
@@ -403,8 +410,11 @@ begin
       and a.role = b.role;
   end if;
 
-  -- Deduplicate grade_bands
+  -- Deduplicate grade_bands and clean up any empty string letter artifacts
   if exists (select 1 from information_schema.tables where table_schema = 'public' and table_name = 'grade_bands') then
+    if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'grade_bands' and column_name = 'letter') then
+      delete from public.grade_bands where letter = '' or letter is null;
+    end if;
     delete from public.grade_bands a
     using public.grade_bands b
     where a.ctid < b.ctid
@@ -523,11 +533,12 @@ on conflict (institution_id, version) do update set
   is_active = excluded.is_active;
 
 -- 7. Grade Scale Bands
-insert into public.grade_bands (policy_id, min_score, max_score, letter_grade, grade_point)
+insert into public.grade_bands (policy_id, min_score, max_score, letter_grade, letter, grade_point)
 select
   gp.id,
   b.min_score,
   b.max_score,
+  b.letter_grade,
   b.letter_grade,
   b.grade_point
 from public.grading_policies gp
@@ -547,15 +558,8 @@ where gp.version = '2018.1'
 on conflict (policy_id, letter_grade) do update set
   min_score = excluded.min_score,
   max_score = excluded.max_score,
+  letter = excluded.letter,
   grade_point = excluded.grade_point;
-
--- Ensure legacy letter column is backfilled if it exists
-do $$
-begin
-  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'grade_bands' and column_name = 'letter') then
-    update public.grade_bands set letter = letter_grade where (letter is null or letter = '') and letter_grade is not null;
-  end if;
-end $$;
 
 -- 8. 27 Approved Official IPAM Courses
 insert into public.courses (code, title, credit_hours, credits, is_active) values
