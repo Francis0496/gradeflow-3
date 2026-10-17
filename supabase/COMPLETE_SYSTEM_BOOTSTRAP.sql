@@ -251,12 +251,19 @@ alter table public.course_attempts add column if not exists is_verified boolean 
 do $$
 begin
   if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'grade_bands' and column_name = 'letter') then
+    alter table public.grade_bands alter column letter drop not null;
+    alter table public.grade_bands alter column letter set default '';
     execute 'update public.grade_bands set letter_grade = letter where letter_grade is null and letter is not null';
+    execute 'update public.grade_bands set letter = letter_grade where (letter is null or letter = '''') and letter_grade is not null';
   end if;
   if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'course_attempts' and column_name = 'letter') then
+    alter table public.course_attempts alter column letter drop not null;
+    alter table public.course_attempts alter column letter set default '';
     execute 'update public.course_attempts set letter_grade = letter where letter_grade is null and letter is not null';
+    execute 'update public.course_attempts set letter = letter_grade where (letter is null or letter = '''') and letter_grade is not null';
   end if;
   if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'courses' and column_name = 'credits') then
+    alter table public.courses alter column credits drop not null;
     execute 'update public.courses set credit_hours = credits where (credit_hours is null or credit_hours = 0) and credits is not null';
   end if;
   if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'audit_logs' and column_name = 'user_id') then
@@ -541,6 +548,14 @@ on conflict (policy_id, letter_grade) do update set
   min_score = excluded.min_score,
   max_score = excluded.max_score,
   grade_point = excluded.grade_point;
+
+-- Ensure legacy letter column is backfilled if it exists
+do $$
+begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'grade_bands' and column_name = 'letter') then
+    update public.grade_bands set letter = letter_grade where (letter is null or letter = '') and letter_grade is not null;
+  end if;
+end $$;
 
 -- 8. 27 Approved Official IPAM Courses
 insert into public.courses (code, title, credit_hours, credits, is_active) values

@@ -100,6 +100,17 @@ on conflict (institution_id, version) do update set
   exam_weight = excluded.exam_weight,
   is_active = excluded.is_active;
 
+-- Reconcile legacy letter column on grade_bands
+do $$
+begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'grade_bands' and column_name = 'letter') then
+    alter table public.grade_bands alter column letter drop not null;
+    alter table public.grade_bands alter column letter set default '';
+    execute 'update public.grade_bands set letter_grade = letter where letter_grade is null and letter is not null';
+    execute 'update public.grade_bands set letter = letter_grade where (letter is null or letter = '''') and letter_grade is not null';
+  end if;
+end $$;
+
 insert into public.grade_bands (policy_id, min_score, max_score, letter_grade, grade_point)
 select
   gp.id,
@@ -125,3 +136,10 @@ on conflict (policy_id, letter_grade) do update set
   min_score = excluded.min_score,
   max_score = excluded.max_score,
   grade_point = excluded.grade_point;
+
+do $$
+begin
+  if exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'grade_bands' and column_name = 'letter') then
+    update public.grade_bands set letter = letter_grade where (letter is null or letter = '') and letter_grade is not null;
+  end if;
+end $$;
