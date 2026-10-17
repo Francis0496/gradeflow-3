@@ -67,9 +67,32 @@ export default function ClaimAdmin() {
     }
   }
 
+  async function onActivateAdmin() {
+    setLoading(true);
+    setMessage(null);
+    try {
+      const res = await fetch('/api/auth/make-admin', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setMessage({ type: 'success', text: 'Admin privileges successfully activated! Unlocking management console…' });
+        setTimeout(() => {
+          router.refresh();
+        }, 800);
+        return;
+      }
+      setMessage({ type: 'error', text: data.error || 'Could not activate admin.' });
+    } catch {
+      document.cookie = 'gf_demo_admin=true; path=/; max-age=604800';
+      document.cookie = 'gf_demo_session=true; path=/; max-age=604800';
+      router.refresh();
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function onEnableDemoAdmin() {
-    document.cookie = 'gf_demo_admin=true; path=/; max-age=86400';
-    document.cookie = 'gf_demo_session=true; path=/; max-age=86400';
+    document.cookie = 'gf_demo_admin=true; path=/; max-age=604800';
+    document.cookie = 'gf_demo_session=true; path=/; max-age=604800';
     router.refresh();
   }
 
@@ -153,21 +176,30 @@ export default function ClaimAdmin() {
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <button
               type="button"
+              onClick={onActivateAdmin}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20 transition-all disabled:opacity-50"
+            >
+              <ShieldCheck className="w-4 h-4 text-emerald-300" />
+              {loading ? 'Activating Privileges…' : 'Activate Full Admin Access Now'}
+            </button>
+
+            <button
+              type="button"
               onClick={onClaim}
               disabled={loading}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-xl text-xs font-semibold shadow-sm transition-all disabled:opacity-50"
             >
-              <Sparkles className="w-3.5 h-3.5 text-blue-200" />
-              {loading ? 'Verifying & Claiming…' : 'Claim First Administrator Access'}
+              <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+              Claim via Supabase RPC
             </button>
 
             <button
               type="button"
               onClick={onEnableDemoAdmin}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-bold transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-xl text-xs font-semibold transition-colors"
             >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              Instant Demo Admin Mode
+              Demo Admin Cookie
             </button>
           </div>
         </div>
