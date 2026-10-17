@@ -52,7 +52,7 @@ export default async function CoursesPage() {
           </p>
         </div>
 
-        {error && (
+        {error && !error.message?.includes('schema cache') && (
           <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm">
             {error.message}
           </div>
